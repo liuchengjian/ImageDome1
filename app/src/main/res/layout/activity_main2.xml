@@ -2,13 +2,14 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
+    android:id="@+id/fl"
     android:orientation="vertical">
-
-    <com.dqgb.imagedome.ImageLayout
-        android:id="@+id/layoutContent"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_centerInParent="true" />
+    <TextView
+        android:id="@+id/iv"
+        android:layout_width="60dp"
+        android:background="#ff0"
+        android:gravity="center"
+        android:layout_height="60dp"
+       android:text="11" />
 
 </LinearLayout>

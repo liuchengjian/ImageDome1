@@ -13,7 +13,7 @@ public class ImageBrowseActivity extends AppCompatActivity {
 
     private ViewPager viewPagerImgs;
 
-    private List<ImgSimple> imgSimples;
+    private List<ImgSimple> imgSimples;//传过来的viewPage数组
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

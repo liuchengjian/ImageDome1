@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,18 +22,19 @@ public class ImgBrowsePagerAdapter extends PagerAdapter {
     Activity mContext;
 
     private int width;
+    private int heightPm;
 
     public ImgBrowsePagerAdapter(Activity context, List<ImgSimple> imgSimples) {
 
         this.mContext = context;
         this.imgSimples = imgSimples;
-
         this.views = new ArrayList<>();
-
         DisplayMetrics dm = new DisplayMetrics();
         context.getWindowManager().getDefaultDisplay().getMetrics(dm);
-
+        //获取屏幕宽度,高度
         width = dm.widthPixels;
+        heightPm = dm.heightPixels;
+//        Log.e("111111111111", "width:" + width + "height:" + heightPm);
     }
 
     @Override
@@ -66,6 +68,7 @@ public class ImgBrowsePagerAdapter extends PagerAdapter {
             layoutContent.setPoints(pointSimples);
 
             int height = (int) (width * scale);
+//            Log.e("111111111111", "width:" + width + "height:" + height);
 
             layoutContent.setImgBg(width, height, imgUrl);
         } catch (Exception e) {

@@ -1,21 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.dqgb.imagedome.DragLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="match_parent">
 
     <ImageView
         android:id="@+id/imgBg"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_gravity="center"
         android:adjustViewBounds="true"
         android:maxHeight="1000dp"
         android:scaleType="centerCrop" />
 
-    <FrameLayout
+    <com.dqgb.imagedome.DragLayout
         android:id="@+id/layouPoints"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center" />
+        android:layout_height="match_parent"
+        android:layout_gravity="center" >
 
-</FrameLayout>
+        <ImageView
+            android:layout_gravity="center_vertical"
+            android:layout_width="50dp"
+            android:src="@mipmap/ic_launcher"
+            android:background="#f0f"
+            android:layout_height="50dp"/>
+    </com.dqgb.imagedome.DragLayout>
+
+</com.dqgb.imagedome.DragLayout>
