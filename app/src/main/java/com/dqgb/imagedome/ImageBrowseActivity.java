@@ -1,10 +1,16 @@
 package com.dqgb.imagedome;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
+import android.view.View;
+import android.widget.Toast;
 
+
+import org.simple.eventbus.EventBus;
+import org.simple.eventbus.Subscriber;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,24 +18,71 @@ import java.util.List;
 public class ImageBrowseActivity extends AppCompatActivity {
 
     private ViewPager viewPagerImgs;
+    private PagerAdapter adapter;
+    private int type = 0;
 
-    private List<ImgSimple> imgSimples;//传过来的viewPage数组
+    private List<ImgSimple> imgSimples = new ArrayList<>();//传过来的viewPage数组
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.activity_image_browse);
+        EventBus.getDefault().register(this);
+        Intent intent = getIntent();
+        imgSimples = (List<ImgSimple>)intent.getSerializableExtra("data");
+        findViewById(R.id.mIvSee).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                type = 0;
+                adapter = new ImgBrowsePagerAdapter(ImageBrowseActivity.this, imgSimples, type);
+                viewPagerImgs.setAdapter(adapter);
+                adapter.notifyDataSetChanged();
+            }
+        });
+        findViewById(R.id.mIvAdd).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                type = 1;
+                adapter = new ImgBrowsePagerAdapter(ImageBrowseActivity.this, imgSimples, type);
+                viewPagerImgs.setAdapter(adapter);
+                adapter.notifyDataSetChanged();
+            }
+        });
+        findViewById(R.id.mIvMove).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                type = 2;
+                adapter = new ImgBrowsePagerAdapter(ImageBrowseActivity.this, imgSimples, type);
+                viewPagerImgs.setAdapter(adapter);
+                adapter.notifyDataSetChanged();
+            }
+        });
+        findViewById(R.id.mIvDel).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                type = 3;
+                adapter = new ImgBrowsePagerAdapter(ImageBrowseActivity.this, imgSimples, type);
+                viewPagerImgs.setAdapter(adapter);
+                adapter.notifyDataSetChanged();
+            }
+        });
 
 
-        viewPagerImgs = (ViewPager) this.findViewById(R.id.viewPagerImgs);
+        viewPagerImgs = this.findViewById(R.id.viewPagerImgs);
         viewPagerImgs.setOffscreenPageLimit(2);
 
-        initData();
+//        initData();
 
-        PagerAdapter adapter = new ImgBrowsePagerAdapter(this, imgSimples);
+        adapter = new ImgBrowsePagerAdapter(this, imgSimples, type);
         viewPagerImgs.setAdapter(adapter);
 
+    }
+
+    @Subscriber
+    public void updateUser(PointType type) {
+        if (type.type == 3) {
+            Toast.makeText(this, "你好1", Toast.LENGTH_LONG).show();
+        }
     }
 
     private void initData() {
@@ -130,5 +183,11 @@ public class ImageBrowseActivity extends AppCompatActivity {
         imgSimples.add(imgSimple1);
         imgSimples.add(imgSimple2);
         imgSimples.add(imgSimple3);
+    }
+
+    @Override
+    protected void onDestroy() {
+        EventBus.getDefault().unregister(this);
+        super.onDestroy();
     }
 }

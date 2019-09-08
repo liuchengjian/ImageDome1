@@ -24,14 +24,15 @@ import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 
-import org.w3c.dom.Text;
 
-import java.lang.reflect.Field;
+import org.simple.eventbus.EventBus;
+import org.simple.eventbus.Subscriber;
+
 import java.util.ArrayList;
 
 public class ImageLayout extends DragLayout implements View.OnClickListener {
 
-    ArrayList<PointSimple> points;
+    public ArrayList<PointSimple> points;
 
     DragLayout layouPoints;
 
@@ -40,7 +41,9 @@ public class ImageLayout extends DragLayout implements View.OnClickListener {
     Context mContext;
     double widthPm;
     double heightPm;
-    private int index= 0;
+    private int index = 0;
+    private boolean isDel = false;
+    private int type = 0;
 
     public ImageLayout(Context context) {
         this(context, null);
@@ -48,6 +51,7 @@ public class ImageLayout extends DragLayout implements View.OnClickListener {
 
     public ImageLayout(Context context, AttributeSet attrs) {
         super(context, attrs);
+        EventBus.getDefault().register(mContext);
         initView(context, attrs);
     }
 
@@ -55,7 +59,6 @@ public class ImageLayout extends DragLayout implements View.OnClickListener {
     private void initView(Context context, AttributeSet attrs) {
 
         mContext = context;
-
         View imgPointLayout = inflate(context, R.layout.layout_imgview_point, this);
 
         imgBg = (ImageView) imgPointLayout.findViewById(R.id.imgBg);
@@ -101,14 +104,10 @@ public class ImageLayout extends DragLayout implements View.OnClickListener {
                         localState.setHeight(120);
                         layoutParams.topMargin = (int) event.getY() - localState.getWidth() / 2;
                         layoutParams.leftMargin = (int) event.getX() - localState.getHeight() / 2;
-//
-                        double a = widthPm / event.getX();
-                        double b = heightPm / event.getY();
-                        double width_scale = 1 / a;
-                        double height_scale = 1 / b;
-                        Log.e("2222222", "width_scale" + width_scale + "height_scale" + height_scale);
-                        points.get(index - 1).width_scale = width_scale;
-                        points.get(index - 1).height_scale = height_scale;
+                        double width_scale = DivideUtils.divide(event.getX(), widthPm);
+                        double height_scale = DivideUtils.divide(event.getY(), heightPm);
+                        points.get(index - 1).setWidth_scale(width_scale);
+                        points.get(index - 1).setHeight_scale(height_scale);
                         ((ViewGroup) localState.getParent()).removeView(localState);
                         layouPoints.addView(localState, layoutParams);
                         break;
@@ -131,54 +130,50 @@ public class ImageLayout extends DragLayout implements View.OnClickListener {
     }
 
     @SuppressLint("ClickableViewAccessibility")
-    public void setImgBg(final int width, final int height, String imgUrl) {
-        widthPm = (double) width;
-        heightPm = (double) height;
+    public void setImgBg(final double width, final double height, String imgUrl, int type) {
+        widthPm = width;
+        heightPm = height;
+        this.type = type;
         ViewGroup.LayoutParams lp = imgBg.getLayoutParams();
-        lp.width = width;//图片的宽度
-        lp.height = height;//图片的高度
+        lp.width = (int) width;//图片的宽度
+        lp.height = (int) height;//图片的高度
 
         imgBg.setLayoutParams(lp);
 
         ViewGroup.LayoutParams lp1 = layouPoints.getLayoutParams();
-        lp1.width = width;//容器的宽度
-        lp1.height = height;//容器的高度
+        lp1.width = (int) width;//容器的宽度
+        lp1.height = (int) height;//容器的高度
         layouPoints.setLayoutParams(lp1);
-        Glide.with(mContext).load(imgUrl).asBitmap().into(imgBg);
+        Glide.with(mContext).load(imgUrl).into(imgBg);//asBitmap()
+        if (type == 1) {
+            layouPoints.setOnTouchListener(new OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    int currentY;//
+                    int currentX;
+                    switch (event.getAction()) {
+                        // ACTION_DOWN 按下
+                        // ACTION_MOVE 在屏幕上移动
+                        // ACTION_UP   离开屏幕
+                        case MotionEvent.ACTION_DOWN:
+                            currentX = (int) event.getX();
+                            currentY = (int) event.getY();
 
-        layouPoints.setOnTouchListener(new OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                int currentY;//
-                int currentX;
-                switch (event.getAction()) {
-                    // ACTION_DOWN 按下
-                    // ACTION_MOVE 在屏幕上移动
-                    // ACTION_UP   离开屏幕
-                    case MotionEvent.ACTION_DOWN:
-                        currentX = (int) event.getX();
-                        currentY = (int) event.getY();
-                        double a = width / currentX;
-                        double b = height / currentY;
-                        double width_scale = 1 / a;
-                        double height_scale = 1 / b;
+                            double width_scale = DivideUtils.divide(currentX, width);
+                            double height_scale = DivideUtils.divide(currentY, height);
 //                        Log.e("111111111111", "currentX" + currentX + "width" + width + "height_scale" + width_scale);
+                            //添加标记（控件）
+                            addPoint(currentX, currentY, width_scale, height_scale);
+                        case MotionEvent.ACTION_MOVE:
+                            break;
+                        case MotionEvent.ACTION_UP:
+                            break;
+                    }
 
-                        //添加标记（控件）
-                        addPoint(currentX, currentY, width_scale, height_scale);
-                        //添加标记（删除）
-                        //mRelativeLayout.removeView(mDrawView);
-                    case MotionEvent.ACTION_MOVE:
-                        break;
-                    case MotionEvent.ACTION_UP:
-                        break;
+                    return true;
                 }
-
-                return true;
-            }
-        });
-
-
+            });
+        }
         addPoints(width, height);
 
     }
@@ -188,12 +183,19 @@ public class ImageLayout extends DragLayout implements View.OnClickListener {
         this.points = points;
     }
 
-    private void addPoints(int width, int height) {
+    /**
+     * 动态添加已经存在的
+     *
+     * @param width
+     * @param height
+     */
+    @SuppressLint("ClickableViewAccessibility")
+    private void addPoints(final double width, final double height) {
         layouPoints.removeAllViews();
         for (int i = 0; i < points.size(); i++) {
             double width_scale = points.get(i).width_scale;
             double height_scale = points.get(i).height_scale;
-            LinearLayout view = (LinearLayout) LayoutInflater.from(mContext).inflate(R.layout.layout_img_point, this, false);
+            final LinearLayout view = (LinearLayout) LayoutInflater.from(mContext).inflate(R.layout.layout_img_point, this, false);
 //            ImageView imageView = (ImageView) view.findViewById(R.id.imgPoint);
             final TextView bt = view.findViewById(R.id.BtPoint);
             bt.setTag(i);
@@ -204,10 +206,79 @@ public class ImageLayout extends DragLayout implements View.OnClickListener {
 //            AnimationDrawable animationDrawable = (AnimationDrawable) imageView.getDrawable();
 //            animationDrawable.start();
             LayoutParams layoutParams = (LayoutParams) view.getLayoutParams();
-            layoutParams.leftMargin = (int) (width * width_scale);
-            layoutParams.topMargin = (int) (height * height_scale);
+            layoutParams.leftMargin = (int) (width * width_scale - bt.getWidth() / 2);
+            layoutParams.topMargin = (int) (height * height_scale - bt.getWidth() / 2);
             bt.setOnClickListener(this);
+            if (type == 3) {
+                bt.setOnTouchListener(new OnTouchListener() {
+                    @Override
+                    public boolean onTouch(View v, MotionEvent event) {
+                        switch (event.getAction()) {
+                            // ACTION_UP   离开屏幕
+                            case MotionEvent.ACTION_DOWN:
+                                //添加标记（删除）
+                                int pos = (int) v.getTag();
+                                points.remove(pos);
+                                layouPoints.removeAllViews();
+                                addPoints(width, height);
+                            case MotionEvent.ACTION_MOVE:
+                                break;
+                            case MotionEvent.ACTION_UP:
+                                break;
+                        }
+                        return true;
+                    }
+                });
+            }
             //长按进行拖拉
+            if (type == 2) {
+                bt.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override
+                    public boolean onLongClick(View v) {
+                        index = (int) v.getTag();
+                        View.DragShadowBuilder shadowBuilder = new View.DragShadowBuilder(v);
+                        v.startDrag(null, shadowBuilder, bt, 0);
+                        //震动反馈
+                        v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                        return true;
+                    }
+                });
+            }
+            layouPoints.addView(view, layoutParams);
+
+        }
+    }
+
+
+    /**
+     * 点击屏幕点击一个点
+     *
+     * @param currentX
+     * @param currentY
+     * @param width_scale
+     * @param height_scale
+     */
+    @SuppressLint("ClickableViewAccessibility")
+    private void addPoint(final double currentX, final double currentY, final double width_scale, final double height_scale) {
+        LinearLayout view = (LinearLayout) LayoutInflater.from(mContext).inflate(R.layout.layout_img_point, this, false);
+//            ImageView imageView = (ImageView) view.findViewById(R.id.imgPoint);
+        final TextView bt = view.findViewById(R.id.BtPoint);
+//        points.add(new PointSimple());
+        PointSimple newPoint = new PointSimple();
+        newPoint.width_scale = width_scale;
+        newPoint.height_scale = height_scale;
+        points.add(newPoint);
+        bt.setWidth(120);
+        bt.setHeight(120);
+        bt.setTag(points.size());
+        bt.setText(String.valueOf(points.size()));
+        LayoutParams layoutParams = (LayoutParams) view.getLayoutParams();
+//        Log.e("111111111111", "getWidth" + bt.getWidth() + "getHeight" + bt.getHeight());
+        layoutParams.leftMargin = (int) (currentX - bt.getWidth() / 2);
+        layoutParams.topMargin = (int) (currentY - bt.getWidth() / 2);
+        bt.setOnClickListener(this);
+        //长按进行拖拉
+        if (type == 2) {
             bt.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View v) {
@@ -220,47 +291,31 @@ public class ImageLayout extends DragLayout implements View.OnClickListener {
                 }
 
             });
-            layouPoints.addView(view, layoutParams);
         }
-    }
+        if (type == 3) {
+            bt.setOnTouchListener(new OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    switch (event.getAction()) {
+                        // ACTION_UP   离开屏幕
+                        case MotionEvent.ACTION_DOWN:
+                            //添加标记（删除）
+                            int pos = (int) v.getTag();
+                            points.remove(pos - 1);
+                            layouPoints.removeAllViews();
+                            Log.e("333333", "widthPm" + widthPm + "widthPm" + heightPm);
+                            addPoints(widthPm, heightPm);
+//                            view.removeView(bt);
+                        case MotionEvent.ACTION_MOVE:
+                            break;
+                        case MotionEvent.ACTION_UP:
+                            break;
+                    }
 
-    private void addPoint(int currentX, int currentY, double width_scale, double height_scale) {
-
-        LinearLayout view = (LinearLayout) LayoutInflater.from(mContext).inflate(R.layout.layout_img_point, this, false);
-//            ImageView imageView = (ImageView) view.findViewById(R.id.imgPoint);
-        final TextView bt = view.findViewById(R.id.BtPoint);
-//        points.add(new PointSimple());
-        PointSimple newPoint = new PointSimple();
-        newPoint.width_scale = width_scale;
-        newPoint.height_scale = height_scale;
-        points.add(newPoint);
-        bt.setWidth(120);
-        bt.setHeight(120);
-        bt.setTag(points.size());
-        bt.setText(points.size() + "");
-//            AnimationDrawable animationDrawable = (AnimationDrawable) imageView.getDrawable();
-//            animationDrawable.start();
-
-        LayoutParams layoutParams = (LayoutParams) view.getLayoutParams();
-//        Log.e("111111111111", "getWidth" + bt.getWidth() + "getHeight" + bt.getHeight());
-
-        layoutParams.leftMargin = (int) (currentX - 60);
-        layoutParams.topMargin = (int) (currentY - 60);
-
-        bt.setOnClickListener(this);
-        //长按进行拖拉
-        bt.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                index = (int) v.getTag();
-                View.DragShadowBuilder shadowBuilder = new View.DragShadowBuilder(v);
-                v.startDrag(null, shadowBuilder, bt, 0);
-                //震动反馈
-                v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
-                return true;
-            }
-
-        });
+                    return true;
+                }
+            });
+        }
         layouPoints.addView(view, layoutParams);
     }
 
@@ -268,7 +323,7 @@ public class ImageLayout extends DragLayout implements View.OnClickListener {
     @Override
     public void onClick(View view) {
         int pos = (int) view.getTag();
-//        PointSimple clixkPoint = points.get(pos - 1);
+        PointSimple clixkPoint = points.get(pos - 1);
 //        Toast.makeText(getContext(), "width_scale:" + clixkPoint.width_scale + "\n" + "height_scale:" + clixkPoint.height_scale, Toast.LENGTH_SHORT).show();
     }
 

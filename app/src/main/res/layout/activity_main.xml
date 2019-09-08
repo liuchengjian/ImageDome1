@@ -25,7 +25,7 @@
         android:layout_centerVertical="true"
         android:layout_width="50dp"
         android:layout_height="50dp"
-        android:text="浏览2" />
+        android:text="图片" />
     <Button
         android:id="@+id/autoBackView"
         android:layout_centerHorizontal="true"
